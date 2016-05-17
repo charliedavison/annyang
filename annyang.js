@@ -52,6 +52,8 @@
   var debugStyle = 'font-weight: bold; color: #00f;';
   var pauseListening = false;
   var isListening = false;
+  var isDictating = false;
+  var objDictationTarget = null;
 
   // The command matching code is a modified version of Backbone.Router by Jeremy Ashkenas, under the MIT license.
   var optionalParam = /\s*\((.*?)\)\s*/g;
@@ -95,16 +97,24 @@
     }
   };
 
-  var parseResults = function(results) {
+  var parseResults = function (results) {
+      console.log("Parsing results");
     invokeCallbacks(callbacks.result, results);
     var commandText;
     // go over each of the 5 results and alternative results received (we've set maxAlternatives to 5 above)
-    for (var i = 0; i<results.length; i++) {
+    for (var i = 0; i < results.length; i++) {
+        console.log("Trimming command text");
       // the text recognized
       commandText = results[i].trim();
       if (debugState) {
         console.log('Speech recognized: %c'+commandText, debugStyle);
       }
+
+      if (isDictating && objDictationTarget !== null) {
+          objDictationTarget.value += commandText;
+          return;
+      }
+
 
       // try and match recognized text to one of the commands on the list
       for (var j = 0, l = commandsList.length; j < l; j++) {
@@ -169,7 +179,7 @@
       recognition = new SpeechRecognition();
 
       // Set the max number of alternative transcripts to try and match with a command
-      recognition.maxAlternatives = 5;
+      recognition.maxAlternatives = isDictating ? 1 : 5;
 
       // In HTTPS, turn off continuous mode for faster results.
       // In HTTP,  turn on  continuous mode for much slower results, but no repeating security notices
@@ -598,7 +608,21 @@
       }
 
       parseResults(sentences);
+    },
+
+
+    beginDictation: function (p_objDictationTarget) {
+        if (p_objDictationTarget) {
+            objDictationTarget = p_objDictationTarget;
+            isDictating = true;
+        }
+    },
+
+    endDictation: function () {
+        objDictationTarget = null;
+        isDictating = false;
     }
+
   };
 
   return annyang;
